@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eco Geeks Club · Forest Fire Awareness</title>
+  <link rel="icon" href="logo.jpg">
+  <link rel="stylesheet" href="style.css">
+  <script src="vendor/qrcode.js"></script>
+  <script src="vendor/jsQR.js"></script>
+</head>
+<body>
+  <header>
+    <img class="logo" src="logo.jpg" alt="Eco-Aware logo: protect and preserve">
+    <p class="event-line">Eco Geeks Club · Forest Fire Awareness Challenge</p>
+    <nav class="tabs">
+      <button class="tab active" data-tab="visitor">Visitor</button>
+      <button class="tab" data-tab="leaderboard">Leaderboard</button>
+      <button class="tab" data-tab="admin">Admin</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ================= VISITOR ================= -->
+    <section id="visitor" class="panel active">
+
+      <!-- Fire / water / tree scene: pour water on every submit,
+           a win grows a tree, a loss sends the fire back up -->
+      <figure class="scene" id="scene" aria-live="polite" hidden>
+        <svg viewBox="0 0 400 240" role="img" aria-label="A forest fire being put out with a bucket of water">
+          <defs>
+            <radialGradient id="glow" cx="50%" cy="80%" r="55%">
+              <stop offset="0%" stop-color="#df3331" stop-opacity=".55"/>
+              <stop offset="100%" stop-color="#df3331" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+
+          <circle class="glow" cx="200" cy="200" r="150" fill="url(#glow)"/>
+
+          <!-- ground -->
+          <rect x="0" y="206" width="400" height="34" fill="#2b323b"/>
+          <path d="M0 206 Q100 200 200 206 T400 206" stroke="#79ae44" stroke-width="4" fill="none" opacity=".7"/>
+
+          <!-- fire -->
+          <g id="fire">
+            <path class="flame f1" fill="#df3331"
+                  d="M150 206 C140 186 152 170 160 160 C162 176 168 182 172 184 C170 166 176 150 182 140 C190 158 198 166 196 182 C204 176 206 170 206 164 C214 178 218 192 210 206 Z"/>
+            <path class="flame f2" fill="#df3331"
+                  d="M168 206 C150 180 160 160 176 140 C178 160 186 166 190 166 C186 140 196 118 204 100 C214 130 226 150 224 180 C232 172 236 166 236 158 C246 176 248 192 240 206 Z"/>
+            <path class="flame f3" fill="#f9a825"
+                  d="M186 206 C180 188 190 174 198 162 C202 180 212 186 212 206 Z"/>
+          </g>
+
+          <!-- steam, shown while water hits the fire -->
+          <g id="steam" fill="#f8faf9">
+            <circle class="puff" cx="180" cy="180" r="9"/>
+            <circle class="puff p2" cx="206" cy="176" r="11"/>
+            <circle class="puff p3" cx="194" cy="170" r="8"/>
+          </g>
+
+          <!-- water stream -->
+          <path id="stream" d="M183 166 C182 182 180 196 178 206" stroke="#9fd8ec" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+          <!-- tree, grows on a win -->
+          <g id="tree">
+            <rect x="193" y="150" width="14" height="58" rx="4" fill="#6b4f3a"/>
+            <circle cx="182" cy="152" r="22" fill="#5f9335"/>
+            <circle cx="220" cy="152" r="22" fill="#5f9335"/>
+            <circle cx="200" cy="118" r="26" fill="#79ae44"/>
+            <circle cx="200" cy="92" r="18" fill="#8fc25a"/>
+          </g>
+
+          <!-- bucket, rests top-right and tips over the fire on each submit -->
+          <g id="bucket">
+            <path d="M196 62 Q222 34 248 62" stroke="#f8faf9" stroke-width="4" fill="none"/>
+            <path d="M194 62 L250 62 L244 120 L200 120 Z" fill="#f8faf9"/>
+            <path d="M197 84 L247 84 L245 92 L199 92 Z" fill="#79ae44"/>
+            <ellipse cx="222" cy="62" rx="28" ry="5" fill="#9fd8ec"/>
+          </g>
+        </svg>
+        <figcaption class="scene-caption">Scan a winning code to grow a tree. A wrong code sends the fire back up.</figcaption>
+      </figure>
+
+      <!-- Logged out -->
+      <div id="auth" class="card">
+        <div class="auth-switch">
+          <button id="show-login" class="chip active">Log in</button>
+          <button id="show-register" class="chip">Create account</button>
+        </div>
+        <form id="login-form">
+          <label>Username <input name="username" autocomplete="username" required></label>
+          <label>Password <input name="password" type="password" autocomplete="current-password" required></label>
+          <button type="submit" class="btn">Log in</button>
+        </form>
+        <form id="register-form" hidden>
+          <label>Username <input name="username" autocomplete="username" required pattern="[a-zA-Z0-9_]{3,30}"></label>
+          <label>Password (min 6) <input name="password" type="password" autocomplete="new-password" minlength="6" required></label>
+          <button type="submit" class="btn">Create account</button>
+        </form>
+        <p id="auth-msg" class="msg" role="alert"></p>
+      </div>
+
+      <!-- Logged in -->
+      <div id="scanner-area" class="card" hidden>
+        <div class="row between">
+          <p>Logged in as <strong id="who"></strong></p>
+          <button id="logout" class="chip">Log out</button>
+        </div>
+        <h2>Scan a winning QR code</h2>
+        <button id="start-scan" class="btn">📷 Open camera</button>
+        <button id="check-win" class="chip">Check my win status</button>
+        <div class="video-wrap" hidden>
+          <video id="video" playsinline muted></video>
+          <p class="hint">Point your camera at the code…</p>
+          <button id="stop-scan" class="chip">Cancel</button>
+        </div>
+        <details>
+          <summary>Camera not working? Paste the code instead</summary>
+          <textarea id="manual-code" rows="3" placeholder="Paste the code text here"></textarea>
+          <button id="manual-submit" class="btn secondary">Submit code</button>
+        </details>
+        <p id="scan-msg" class="msg" role="status"></p>
+      </div>
+    </section>
+
+    <!-- ================= LEADERBOARD ================= -->
+    <section id="leaderboard" class="panel">
+      <div class="card">
+        <div class="row between">
+          <h2>Leaderboard</h2>
+          <button id="refresh-leaderboard" class="chip">Refresh</button>
+        </div>
+        <table class="leaderboard">
+          <thead>
+            <tr><th>Place</th><th>Name</th><th>Points</th></tr>
+          </thead>
+          <tbody id="leaderboard-body"></tbody>
+        </table>
+        <p id="leaderboard-msg" class="msg" role="status"></p>
+      </div>
+    </section>
+
+    <!-- ================= ADMIN ================= -->
+    <section id="admin" class="panel">
+      <div id="admin-login" class="card">
+        <h2>Admin login</h2>
+        <form id="admin-login-form">
+          <label>Admin token <input name="token" type="password" autocomplete="off" required></label>
+          <button type="submit" class="btn">Enter</button>
+        </form>
+        <p id="admin-login-msg" class="msg" role="alert"></p>
+      </div>
+
+      <div id="admin-area" hidden>
+        <div class="row between">
+          <p>Admin mode</p>
+          <button id="admin-logout" class="chip">Log out</button>
+        </div>
+
+        <div class="card">
+          <h2>Add a challenge</h2>
+          <form id="challenge-form" class="inline-form">
+            <label>Name <input name="name" maxlength="80" required></label>
+            <label>Points <input name="points" type="number" min="1" max="1000" required></label>
+            <button type="submit" class="btn">Add</button>
+          </form>
+          <p id="challenge-msg" class="msg" role="status"></p>
+          <div id="challenge-list" class="grid"></div>
+        </div>
+
+        <div class="card">
+          <div class="row between">
+            <h2>Submitted wins</h2>
+            <select id="win-filter" aria-label="Filter wins">
+              <option value="">All</option>
+              <option value="pending" selected>Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <div id="win-list"></div>
+          <p id="win-msg" class="msg" role="status"></p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
